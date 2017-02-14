@@ -8,12 +8,14 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.text.Format;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,7 +45,7 @@ import com.opencsv.CSVWriter;
  *
  */
 public class SearchManager {
-	private ArrayList<String> candidates; //후보자리스트!검색에활용될것
+	private ArrayList<String> candidates = new ArrayList<>(); //후보자리스트!검색에활용될것
 	
 	private String url = "http://search.daum.net/search?w=news&cluster=n&req=tab&period=u&DA=STC"; // 검색
 	// URL
@@ -95,13 +97,29 @@ public class SearchManager {
  * @param edate 필요? (DB에서 가져와야함)
  * @param _term 필요? (뭘까 !!!)
  */
-	public SearchManager(String sdate, String edate, int _term) {
+	public SearchManager(String sdate, String edate) {
 		try {
 			list = new ArrayList<Article>();
-			startDate = sd.parse(sdate); // 최초일
-			endDate = sd.parse(edate); // 최종일
-			term = _term; // 검색 텀 지정
-			url = url + "&n=" + NUM; // 페이지당 표시개수
+//			startDate = sd.parse(sdate); // 최초일
+//			endDate = sd.parse(edate); // 최종일
+//			term = _term; // 검색 텀 지정
+//			url = url + "&n=" + NUM; // 페이지당 표시개수
+
+			//검색을 할 keyword들 미리 세팅
+			candidates.add("반기문");
+//			candidates.add("문재인");
+//			candidates.add("박원순");
+//			candidates.add("이재명");
+//			candidates.add("안철수");
+//			candidates.add("유승민");
+//			candidates.add("안희정");
+//			candidates.add("손학규");
+//			candidates.add("검색 쿼리 활용,,,");
+			
+			//후보자들을 search에 쏙쏙
+			for (String candidate : candidates){
+				search(candidate);	
+			}
 			
 			/**
 			 * 언론사별 클래스
@@ -114,8 +132,8 @@ public class SearchManager {
 			 * 
 			 */
 			
-		} catch (ParseException e) {
-			System.out.println("Informal date format error!!");
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -132,63 +150,66 @@ public class SearchManager {
 	 *  Joseon(반기문).parseArticle();
 	 *  nextCandidate(); //다음후보자세팅
 	 * }
+	 * @throws UnsupportedEncodingException 
 	 * 
 	 */
 	@SuppressWarnings("finally")
-	public Document search(String _keyword) {
+	public boolean search(String _keyword) {
 
-		//언론사별로 크롤
-		YonhapSearch yh = new YonhapSearch(sdate, edate, term);
-				
+		//임시로 startDate, endDate 대신 sDate, eDate
+//		String sDate = setsDate();
+//		String eDate = seteDate();
+		String sDate = "20170120";
+		String eDate = "20170123";
 		
-		// 다음 페이지 검색
-		keyword = _keyword.replaceAll("\"", "");
-		// 저장용 키워드
-		String result = "";
-		Document doc = null;
-
+		//언론사별로 크롤 (링크,크롤,파싱,DB저장 전 과정)
 		try {
-			query = URLEncoder.encode(_keyword, "UTF-8");
-			tempUrl = url + "&q=" + query;
-
-			curSdate = startDate;
-			curEdate = addTerm(curSdate);
-
-			if (curEdate.after(endDate) && !done) {
-				curEdate = endDate;
-				done = true;
-			}
-			tempUrl = tempUrl + "&sd=" + sd.format(curSdate) + stime + "&ed=" + sd.format(curEdate) + etime;
-			System.out.println("시작일 : " + curSdate + " 종료일: " + curEdate);
-			System.out.println("시작일 포맷 : " + sd.format(curSdate) + " 종료일 포맷 : " + sd.format(curEdate));
-			System.out.println(tempUrl);
-			
-			
+			YonhapSearch yh = new YonhapSearch(sDate, eDate, _keyword);
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
-		} finally {
-			return doc;
 		}
+//		JoongangSearch jn = new JoongangSearch(sdate, edate, _keyword);
+// 		...		
+
+//뭐지,,,
+//		try {
+//			query = URLEncoder.encode(_keyword, "UTF-8");
+//			tempUrl = url + "&q=" + query;
+//
+//			curSdate = startDate;
+//			curEdate = addTerm(curSdate);
+//
+//			if (curEdate.after(endDate) && !done) {
+//				curEdate = endDate;
+//				done = true;
+//			}
+//			tempUrl = tempUrl + "&sd=" + sd.format(curSdate) + stime + "&ed=" + sd.format(curEdate) + etime;
+//			System.out.println("시작일 : " + curSdate + " 종료일: " + curEdate);
+//			System.out.println("시작일 포맷 : " + sd.format(curSdate) + " 종료일 포맷 : " + sd.format(curEdate));
+//			System.out.println(tempUrl);
+//			
+//			
+//		} catch (UnsupportedEncodingException e) {
+//			e.printStackTrace();
+//		} finally {
+//			return doc;
+//		}
+		
+		return true;
+	} //
+
+
+	private String seteDate() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
-	/*
-	 * getTotal(doc) 검색어에 해당하는 검색결과 총 몇개인지 알 수 있음
-	 */
-	int getTotal(Document doc) {
-		try {
-			Elements elem = doc.select("span#resultCntArea"); //총검색결과
-			Pattern pat = Pattern.compile("[0-9]*건");
-			Matcher mat = pat.matcher(elem.text());
-			mat.find();
-
-			total = Integer.parseInt(mat.group().replaceAll("건", ""));
-			// 전체 검색 결과 개수
-			// System.out.println(total);
-		} catch (IllegalStateException e) {
-			total = 0;
-		}
-		return total;
+/* 여기있던 getTotal 삭제함 (언론사별로 달라서 옮겼음) */
+private String setsDate() {
+		// TODO Auto-generated method stub
+		return null;
 	}
+
 
 	/**
 	 * ?
@@ -225,165 +246,165 @@ public class SearchManager {
 	 * @return doc?
 	 */
 	@SuppressWarnings("finally")
-	public Document search() {
-		String result = "";
-		Document doc = null;
-		boolean renew = false;//?
-		String tempUrl2;
-		// System.out.println("done = " + done);
-		// 저장용 키워드
-		try {
-			// 마지막 페이지 도달 여부 확인
-			if (page >= maxPage) {
-				System.out.println("Page done");
-				saveAsCSV();
-				if (!done) {
-					changeDate();
-					renew = true;
-				} else if (done) {
-					doc = null;
-					return null;
-				}
-				// total 갱신
-			} else {
-				// 마지막 페이지가 아닌 경우, 페이지 증가 후 검색
-				page++;
-			}
-			if (renew)
-				tempUrl2 = tempUrl;
-			else
-				tempUrl2 = tempUrl + "&p=" + page; // 페이지
-			// Http 요청
-			System.out.println(tempUrl2);
-			http = new HttpGet(tempUrl2);
-			httpClient = HttpClientBuilder.create().build();
-			response = httpClient.execute(http);
-			entity = response.getEntity();
-			ContentType content = ContentType.getOrDefault(entity);
-			Charset charset = content.getCharset();
-			br = new BufferedReader(new InputStreamReader(entity.getContent(), charset));
-			StringBuffer sb = new StringBuffer();
-			String line = "";
-			while ((line = br.readLine()) != null) {
-				sb.append(line + "\n");
-			}
-			result = sb.toString();
-			doc = Jsoup.parse(result);
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		} catch (ClientProtocolException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-
-			if (renew) {
-				total = getTotal(doc);
-				setPage();
-				page = 1;
-			}
-			// saveAsHTML(result);
-			if (!done)
-				parseArticle(doc);
-
-			return doc;
-		}
-	}
-
-	/**
-	 * ?
-	 */
-	private void changeDate() {
-		System.out.println("changeDate() called.");
-		prevSdate = curSdate;
-		prevEdate = curEdate;
-
-		curSdate = addTerm(prevEdate, 1);
-		curEdate = addTerm(curSdate);
-		System.out.println("시작일 : " + curSdate + " 종료일: " + curEdate);
-		System.out.println("시작일 포맷 : " + sd.format(curSdate) + " 종료일 포맷 : " + sd.format(curEdate));
-
-		if (curEdate.after(endDate)) {
-			curEdate = endDate;
-			done = true;
-		}
-		tempUrl = url + "&q=" + query;
-		tempUrl = tempUrl + "&sd=" + sd.format(curSdate) + stime + "&ed=" + sd.format(curEdate) + etime;
-	}
-
-	/**
-	 * ?
-	 */
-	private void setPage() {
-		maxPage = total / NUM;
-
-		if (total % NUM != 0) {
-			maxPage++;
-		}
-		if (maxPage > 80) {
-			maxPage = 80;
-		}
-		System.out.println("maxPage = " + maxPage);
-	}
-
-	/**
-	 * ?
-	 * @param _date
-	 * @return
-	 */
-	private Date addTerm(Date _date) {
-		Calendar cal = new GregorianCalendar();
-		cal.setTime(_date);
-		cal.add(Calendar.DAY_OF_YEAR, term);
-
-		return cal.getTime();
-	}
-
-	/**
-	 * ?
-	 * @param _date
-	 * @param _term
-	 * @return
-	 */
-	private Date addTerm(Date _date, int _term) {
-		Calendar cal = new GregorianCalendar();
-		cal.setTime(_date);
-		cal.add(Calendar.DAY_OF_YEAR, _term);
-		return cal.getTime();
-	}
-	
-	
-/**
- * ?
- * @param contents
- * @return
- */
-	private Boolean saveAsHTML(String contents) {
-		@Deprecated
-		// html 저장 미사용
-		boolean success = false;
-		String fileName;
-		try {
-			fileName = "DAUM-" + keyword + "-" + sd.format(curSdate) + "-" +
-					sd.format(curEdate) + "-" + page + "-"
-					+ total + ".html";
-			FileOutputStream fos = new FileOutputStream(fileName);
-			OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-			BufferedWriter out = new BufferedWriter(osw);
-			out.write(contents);
-			out.close();
-			success = true;
-			System.out.println("[SAVE] :: " + fileName + " saved.");
-			return success;
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return success;
-	}
-
-	public String getKeyword (){
-		return keyword;
-	}
+//	public Document search() {
+//		String result = "";
+//		Document doc = null;
+//		boolean renew = false;//?
+//		String tempUrl2;
+//		// System.out.println("done = " + done);
+//		// 저장용 키워드
+//		try {
+//			// 마지막 페이지 도달 여부 확인
+//			if (page >= maxPage) {
+//				System.out.println("Page done");
+//				saveAsCSV();
+//				if (!done) {
+//					changeDate();
+//					renew = true;
+//				} else if (done) {
+//					doc = null;
+//					return null;
+//				}
+//				// total 갱신
+//			} else {
+//				// 마지막 페이지가 아닌 경우, 페이지 증가 후 검색
+//				page++;
+//			}
+//			if (renew)
+//				tempUrl2 = tempUrl;
+//			else
+//				tempUrl2 = tempUrl + "&p=" + page; // 페이지
+//			// Http 요청
+//			System.out.println(tempUrl2);
+//			http = new HttpGet(tempUrl2);
+//			httpClient = HttpClientBuilder.create().build();
+//			response = httpClient.execute(http);
+//			entity = response.getEntity();
+//			ContentType content = ContentType.getOrDefault(entity);
+//			Charset charset = content.getCharset();
+//			br = new BufferedReader(new InputStreamReader(entity.getContent(), charset));
+//			StringBuffer sb = new StringBuffer();
+//			String line = "";
+//			while ((line = br.readLine()) != null) {
+//				sb.append(line + "\n");
+//			}
+//			result = sb.toString();
+//			doc = Jsoup.parse(result);
+//		} catch (UnsupportedEncodingException e) {
+//			e.printStackTrace();
+//		} catch (ClientProtocolException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		} finally {
+//
+//			if (renew) {
+//				total = getTotal(doc);
+//				setPage();
+//				page = 1;
+//			}
+//			// saveAsHTML(result);
+//			if (!done)
+//				parseArticle(doc);
+//
+//			return doc;
+//		}
+//	}
+//
+//	/**
+//	 * ?
+//	 */
+//	private void changeDate() {
+//		System.out.println("changeDate() called.");
+//		prevSdate = curSdate;
+//		prevEdate = curEdate;
+//
+//		curSdate = addTerm(prevEdate, 1);
+//		curEdate = addTerm(curSdate);
+//		System.out.println("시작일 : " + curSdate + " 종료일: " + curEdate);
+//		System.out.println("시작일 포맷 : " + sd.format(curSdate) + " 종료일 포맷 : " + sd.format(curEdate));
+//
+//		if (curEdate.after(endDate)) {
+//			curEdate = endDate;
+//			done = true;
+//		}
+//		tempUrl = url + "&q=" + query;
+//		tempUrl = tempUrl + "&sd=" + sd.format(curSdate) + stime + "&ed=" + sd.format(curEdate) + etime;
+//	}
+//
+//	/**
+//	 * ?
+//	 */
+//	private void setPage() {
+//		maxPage = total / NUM;
+//
+//		if (total % NUM != 0) {
+//			maxPage++;
+//		}
+//		if (maxPage > 80) {
+//			maxPage = 80;
+//		}
+//		System.out.println("maxPage = " + maxPage);
+//	}
+//
+//	/**
+//	 * ?
+//	 * @param _date
+//	 * @return
+//	 */
+//	private Date addTerm(Date _date) {
+//		Calendar cal = new GregorianCalendar();
+//		cal.setTime(_date);
+//		cal.add(Calendar.DAY_OF_YEAR, term);
+//
+//		return cal.getTime();
+//	}
+//
+//	/**
+//	 * ?
+//	 * @param _date
+//	 * @param _term
+//	 * @return
+//	 */
+//	private Date addTerm(Date _date, int _term) {
+//		Calendar cal = new GregorianCalendar();
+//		cal.setTime(_date);
+//		cal.add(Calendar.DAY_OF_YEAR, _term);
+//		return cal.getTime();
+//	}
+//	
+//	
+///**
+// * ?
+// * @param contents
+// * @return
+// */
+//	private Boolean saveAsHTML(String contents) {
+//		@Deprecated
+//		// html 저장 미사용
+//		boolean success = false;
+//		String fileName;
+//		try {
+//			fileName = "DAUM-" + keyword + "-" + sd.format(curSdate) + "-" +
+//					sd.format(curEdate) + "-" + page + "-"
+//					+ total + ".html";
+//			FileOutputStream fos = new FileOutputStream(fileName);
+//			OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+//			BufferedWriter out = new BufferedWriter(osw);
+//			out.write(contents);
+//			out.close();
+//			success = true;
+//			System.out.println("[SAVE] :: " + fileName + " saved.");
+//			return success;
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		return success;
+//	}
+//
+//	public String getKeyword (){
+//		return keyword;
+//	}
 /**
  * parseArticle
  * - 시작/끝날짜를 주면, 그 기간의 기사를 모두 크롤하여 DB에 저장까지 수행

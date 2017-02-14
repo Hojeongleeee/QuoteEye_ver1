@@ -6,7 +6,7 @@ public class Launch {
 		
 //		Document doc;
 
-		SearchManager sm = new SearchManager("20170118", "20170119", 10);
+		SearchManager sm = new SearchManager("20170118", "20170119");
 //		doc = sm.search("\"�ݱ⹮\"");
 //		while(doc != null) {
 //			doc = sm.search();
